@@ -1,0 +1,8 @@
+# Binaries
+server
+
+# Environment
+.env
+
+# Logs
+*.log
