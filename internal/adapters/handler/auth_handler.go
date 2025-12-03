@@ -69,3 +69,33 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		RefreshToken: refreshToken,
 	})
 }
+
+func (h *AuthHandler) OAuthLogin(c *gin.Context) {
+	provider := c.Param("provider")
+	// In a real app, we would redirect to the provider's consent page using oauth2 config
+	// For this hackathon/demo, we just simulate the redirect or return the URL
+	// url := oauthConfig.AuthCodeURL("state")
+	// c.Redirect(http.StatusTemporaryRedirect, url)
+	c.JSON(http.StatusOK, gin.H{"message": "Redirect to " + provider, "url": "https://" + provider + ".com/oauth/authorize"})
+}
+
+func (h *AuthHandler) OAuthCallback(c *gin.Context) {
+	provider := c.Param("provider")
+	code := c.Query("code")
+
+	if code == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "code is required"})
+		return
+	}
+
+	accessToken, refreshToken, err := h.svc.LoginWithOAuth(c.Request.Context(), provider, code)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.AuthResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	})
+}

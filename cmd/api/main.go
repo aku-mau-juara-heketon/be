@@ -50,6 +50,8 @@ func main() {
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
 	r.POST("/refresh", authHandler.Refresh)
+	r.GET("/auth/:provider/login", authHandler.OAuthLogin)
+	r.GET("/auth/:provider/callback", authHandler.OAuthCallback)
 
 	// Protected Routes (Example)
 	protected := r.Group("/api")
