@@ -2,6 +2,7 @@ package unit_test
 
 import (
 	"context"
+	"errors"
 	"hackathon-be/internal/core/domain"
 	"hackathon-be/internal/core/services"
 	"hackathon-be/pkg/config"
@@ -76,4 +77,73 @@ func TestRegister_UserAlreadyExists(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, "user already exists", err.Error())
 	mockRepo.AssertNotCalled(t, "Create")
+}
+
+func TestLoginWithOAuth_Success_NewUser(t *testing.T) {
+	mockRepo := new(MockUserRepository)
+	cfg := &config.Config{JWTSecret: "secret"}
+	svc := services.NewAuthService(mockRepo, cfg)
+
+	ctx := context.Background()
+	provider := "google"
+	code := "valid_google_code"
+	email := "google_user@example.com"
+
+	// Expect GetByEmail to return error (user does not exist)
+	mockRepo.On("GetByEmail", ctx, email).Return(nil, errors.New("user not found"))
+	// Expect Create to be called
+	mockRepo.On("Create", ctx, mock.MatchedBy(func(u *domain.User) bool {
+		return u.Email == email && u.Provider == provider && u.ProviderID == "google_123"
+	})).Return(nil)
+
+	accessToken, refreshToken, err := svc.LoginWithOAuth(ctx, provider, code)
+
+	assert.NoError(t, err)
+	assert.NotEmpty(t, accessToken)
+	assert.NotEmpty(t, refreshToken)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestLoginWithOAuth_Success_ExistingUser(t *testing.T) {
+	mockRepo := new(MockUserRepository)
+	cfg := &config.Config{JWTSecret: "secret"}
+	svc := services.NewAuthService(mockRepo, cfg)
+
+	ctx := context.Background()
+	provider := "github"
+	code := "valid_github_code"
+	email := "github_user@example.com"
+
+	existingUser := &domain.User{
+		ID:    1,
+		Email: email,
+	}
+
+	// Expect GetByEmail to return existing user
+	mockRepo.On("GetByEmail", ctx, email).Return(existingUser, nil)
+	// Create should NOT be called
+	// In our current implementation, we don't call Update on repo, we just modify the struct and generate token
+	// If we added Update to repo, we would mock it here
+
+	accessToken, refreshToken, err := svc.LoginWithOAuth(ctx, provider, code)
+
+	assert.NoError(t, err)
+	assert.NotEmpty(t, accessToken)
+	assert.NotEmpty(t, refreshToken)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestLoginWithOAuth_InvalidCode(t *testing.T) {
+	mockRepo := new(MockUserRepository)
+	cfg := &config.Config{JWTSecret: "secret"}
+	svc := services.NewAuthService(mockRepo, cfg)
+
+	ctx := context.Background()
+	provider := "google"
+	code := "invalid_code"
+
+	_, _, err := svc.LoginWithOAuth(ctx, provider, code)
+
+	assert.Error(t, err)
+	assert.Equal(t, "failed to fetch google user", err.Error())
 }
