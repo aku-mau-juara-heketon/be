@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"hackathon-be/internal/adapters/handler/dto"
 	"hackathon-be/internal/core/services"
 	"net/http"
 
@@ -15,22 +16,8 @@ func NewAuthHandler(svc *services.AuthService) *AuthHandler {
 	return &AuthHandler{svc: svc}
 }
 
-type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
-}
-
-type RegisterRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
-}
-
-type RefreshRequest struct {
-	RefreshToken string `json:"refresh_token" binding:"required"`
-}
-
 func (h *AuthHandler) Register(c *gin.Context) {
-	var req RegisterRequest
+	var req dto.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -46,7 +33,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
-	var req LoginRequest
+	var req dto.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -58,14 +45,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
+	c.JSON(http.StatusOK, dto.AuthResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	})
 }
 
 func (h *AuthHandler) Refresh(c *gin.Context) {
-	var req RefreshRequest
+	var req dto.RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -77,8 +64,8 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
+	c.JSON(http.StatusOK, dto.AuthResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	})
 }
