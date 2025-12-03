@@ -9,7 +9,11 @@ import (
 type User struct {
 	ID           uint           `gorm:"primaryKey" json:"id"`
 	Email        string         `gorm:"uniqueIndex;not null" json:"email"`
-	PasswordHash string         `gorm:"not null" json:"-"`
+	PasswordHash string         `json:"-"` // Optional for OAuth users
+	Name         string         `json:"name"`
+	AvatarURL    string         `json:"avatar_url"`
+	Provider     string         `json:"provider" gorm:"default:'email'"`
+	ProviderID   string         `json:"provider_id"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
 	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
